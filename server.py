@@ -1,6 +1,7 @@
 # Import required modules
 import socket
 import threading
+import os
 
 registered_names = ["JACK", "TOM", "PAUL"]
 passwords = {"JACK": "JACK1", "TOM": "TOM1", "PAUL": "PAUL1"}
@@ -13,6 +14,13 @@ for i in registered_names:
     history[i] = {}
     for j in registered_names:
         history[i][j] = ''
+       
+       
+# Constants:   
+server_data = 'server_data'
+FILE_BUFFER_SIZE = 2048
+SEPARATOR = '<SEPARATOR>'
+ENDTAG = '<ENDTAG>'
 
 HOST = '127.0.0.1'
 PORT = 33
@@ -28,14 +36,47 @@ def send_history(client, username, message):
 def listen_for_messages(client, username):
     while 1:
 
-        message = client.recv(2048).decode('utf-8')  # normal message format: "receiver~message"
+        message = client.recv(FILE_BUFFER_SIZE).decode('utf-8')  # normal message format: "receiver~message"
         if message != '':
             if message[0] == '?':
                 send_history(client, username, message)
+            elif SEPARATOR in message:
+                print("Received a file")
+                # message contains filename and filesize separated by separator
+                filename, filesize, to_user = message.split(SEPARATOR, 2)
+                filepath = os.path.join(server_data, to_user + filename)
+                
+                save_file_to_server(client, filepath)
+                # threading.Thread(target=save_file_to_server, args=(client, filepath, )).start()
+                send_file_to_user(filepath, to_user)
             else:
                 send_message(username, message)
         else:
             print(f"The message send from client {username} is empty")
+            
+
+# Save given filepath to server data
+def save_file_to_server(client, filepath):
+    f = open(filepath, 'wb')
+    file_bytes = b''
+    while 1:
+        data = client.recv(FILE_BUFFER_SIZE)
+        file_bytes += data
+        if file_bytes.endswith(ENDTAG.encode('ascii')):
+            break        
+            
+    f.write(file_bytes[:-len(ENDTAG)])
+    f.close()
+    
+    print('Saved a file to server')
+    
+
+# Function to send a specific file to 1 user
+def send_file_to_user(filepath, to_user, from_user):
+    # Send a clickable message to user, clicking which, the user can open the file directly from the server directory
+    # Send to to_user, not to all
+    
+    pass
 
 
 # Function to send message to a single client
@@ -92,12 +133,17 @@ def client_handler(client):
 
 # Main function
 def main():
+    # server data storage:
+    if not os.path.exists(server_data):
+        os.makedirs(server_data)
+    for file in list(os.listdir(server_data)):
+        os.remove(os.path.join(server_data, file))
+    
     # Creating the socket class object
     # AF_INET: we are going to use IPv4 addresses
     # SOCK_STREAM: we are using TCP packets for communication
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Creating a try catch block
     try:
         # Provide the server with an address in the form of
         # host IP and port
