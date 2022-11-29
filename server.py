@@ -51,8 +51,8 @@ def send_code(email):
     global unique_code
     code = random.randint(0, 9999999999999999)
     unique_code[email] = str(code).zfill(16)
-    unique_code[email] = "1"
-    # emails.send_email(email, unique_code[email])
+    # unique_code[email] = "1"
+    emails.send_email(email, unique_code[email])
 
 
 def create_acct(message):
