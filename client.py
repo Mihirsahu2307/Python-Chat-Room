@@ -25,7 +25,7 @@ username = ""
 
 
 def add_message(message, name):
-    if name in boxes.keys():
+    if name in boxes.keys() and tk.Toplevel.winfo_exists(windows[name]):  # checking if the chat window is open
         boxes[name].config(state=tk.NORMAL)
         boxes[name].insert(tk.END, message + '\n')
         boxes[name].config(state=tk.DISABLED)
@@ -91,10 +91,12 @@ def send_message(textbox, person):
 
 
 boxes = {}
+windows = {}
 
 
 def chat(person):
-    window = tk.Toplevel()
+    windows[person] = tk.Toplevel()
+    window = windows[person]
     window.geometry("600x600")
     window.title(person)
     window.resizable(False, False)
@@ -135,7 +137,7 @@ def chat(person):
 
     boxes[person] = message_box
 
-    client.sendall(('?' + person).encode()) # to ask for chat history with a person
+    client.sendall(('?' + person).encode())  # to ask for chat history with a person
 
 
 # configuring the temporary opening screen
