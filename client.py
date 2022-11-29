@@ -17,6 +17,7 @@ is_connected = False  # Set to true when connected to server
 
 HOST = '127.0.0.1'
 PORT = 33
+
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     # Connect to the server
@@ -26,6 +27,7 @@ except:
     print("Unable to connect to the server")
 
 username = ""
+num_users = 0
 
 emb = unb = pwb = cdb = None
 emf = unf = pwf = cdf = None
@@ -194,7 +196,7 @@ def forgot():
 
 
 def connect():
-    global username, is_connected
+    global username, is_connected, num_users
     username = username_box.get()
     password = password_box.get()
     is_connected = True
@@ -239,6 +241,7 @@ def connect():
         name_button = tk.Button(name_frame, text="Chat", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
                                 command=lambda person=names_list[i]: chat(person))
         name_button.pack(side=tk.LEFT, padx=15)
+        num_users += 1
 
     threading.Thread(target=listen_for_messages_from_server, args=(client,)).start()
 
@@ -414,15 +417,32 @@ def chat(person):
     client.sendall(('?' + person).encode())  # to ask for chat history with a person
 
 
+def new_user_rituals(user):
+    global num_users
+    num_users += 1
+    name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
+    name_frame.grid(row=num_users, column=0, sticky=tk.NSEW)
+
+    name_label = tk.Label(name_frame, text=user, font=FONT, bg=DARK_GREY, fg=WHITE)
+    name_label.pack(side=tk.LEFT, padx=10)
+
+    name_button = tk.Button(name_frame, text="Chat", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
+                            command=lambda person=user: chat(user))
+    name_button.pack(side=tk.LEFT, padx=15)
+
+
 def listen_for_messages_from_server(client):
     while 1:
 
         message = client.recv(FILE_BUFFER_SIZE).decode('utf-8')
         if message != '':
-            username = message.split("~")[0]
-            content = message.split('~')[1]
+            if message[0] == '^':
+                new_user_rituals(message[1:])
+            else:
+                username = message.split("~")[0]
+                content = message.split('~')[1]
 
-            add_message(content, username)
+                add_message(content, username)
 
         else:
             messagebox.showerror("Error", "Message recevied from client is empty")

@@ -26,8 +26,8 @@ SEPARATOR = '<SEPARATOR>'
 ENDTAG = '<ENDTAG>'
 
 HOST = '127.0.0.1'
-PORT = 33
 LISTENER_LIMIT = 5
+PORT = 33
 
 
 def send_history(client, username, message):
@@ -42,6 +42,9 @@ def new_user_rituals(user):
     history[user] = {}
     for name in registered_names:
         history[user][name] = ''
+
+    for name in online:
+        client_id[name].sendall(('^' + user).encode())
 
     registered_names.append(user)
 
