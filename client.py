@@ -28,6 +28,7 @@ except:
 
 username = ""
 num_users = 0
+friendlist = {}
 
 emb = unb = pwb = cdb = None
 emf = unf = pwf = cdf = None
@@ -36,6 +37,8 @@ DARK_GREY = '#121212'
 MEDIUM_GREY = '#1F1B24'
 OCEAN_BLUE = '#464EB8'
 WHITE = "white"
+GREEN = '#5BFA05'
+OFFLINE_BLUE = '#1593D6'
 FONT = ("Helvetica", 17)
 BUTTON_FONT = ("Helvetica", 15)
 SMALL_FONT = ("Helvetica", 13)
@@ -207,6 +210,7 @@ def connect():
         print("COULD NOT SEND USERNAME-PASSWORD")
 
     names_list = []
+    online_set = set()
     # Getting all names separated by ~ in one buffer
     while 1:
         message = client.recv(FILE_BUFFER_SIZE).decode('utf-8')  # getting the names list from the server
@@ -214,7 +218,9 @@ def connect():
         if message == '':
             print("No users registered as of now")
         else:
-            names_list = message[1:].split('~')
+            names_list, online_set = message.split('^')
+            names_list = names_list.split('~')
+            online_set = set(online_set.split('~'))
 
         break
 
@@ -235,12 +241,15 @@ def connect():
         name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
         name_frame.grid(row=i + 1, column=0, sticky=tk.NSEW)
 
-        name_label = tk.Label(name_frame, text=names_list[i], font=FONT, bg=DARK_GREY, fg=WHITE)
+        name_label = tk.Label(name_frame, text=names_list[i], font=FONT, bg=DARK_GREY,
+                              fg=GREEN if names_list[i] in online_set else OFFLINE_BLUE)
         name_label.pack(side=tk.LEFT, padx=10)
 
         name_button = tk.Button(name_frame, text="Chat", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
                                 command=lambda person=names_list[i]: chat(person))
         name_button.pack(side=tk.LEFT, padx=15)
+
+        friendlist[names_list[i]] = name_label
         num_users += 1
 
     threading.Thread(target=listen_for_messages_from_server, args=(client,)).start()
@@ -431,6 +440,10 @@ def new_user_rituals(user):
     name_button.pack(side=tk.LEFT, padx=15)
 
 
+def new_online_rituals(user):
+    friendlist[user].config(fg=GREEN)
+
+
 def listen_for_messages_from_server(client):
     while 1:
 
@@ -438,6 +451,8 @@ def listen_for_messages_from_server(client):
         if message != '':
             if message[0] == '^':
                 new_user_rituals(message[1:])
+            elif message[0] == '&':
+                new_online_rituals(message[1:])
             else:
                 username = message.split("~")[0]
                 content = message.split('~')[1]

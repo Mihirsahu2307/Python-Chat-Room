@@ -54,8 +54,8 @@ def send_code(email):
     global unique_code
     code = random.randint(0, 9999999999999999)
     unique_code[email] = str(code).zfill(16)
-    # unique_code[email] = "1"
-    emails.send_email(email, unique_code[email])
+    unique_code[email] = "1"
+    # emails.send_email(email, unique_code[email])
 
 
 def create_acct(message):
@@ -170,13 +170,20 @@ def client_handler(client, username, password):
     online_list = ''
     for user in registered_names:
         if user != username:
-            names_list += '~' + user
+            if names_list != '':
+                names_list += '~'
+            names_list += user
 
             if user in online:
-                online_list += '^' + user
+                if online_list != '':
+                    online_list += '~'
+                online_list += '~' + user
 
-    client.sendall(names_list.encode())
-    # client.sendall(online_list.encode())
+    client.sendall((names_list + '^' + online_list).encode())
+
+    for name in registered_names:
+        if name != username and name in online:
+            client_id[name].sendall(('&'+username).encode())
 
 
 # Main function
