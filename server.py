@@ -16,6 +16,7 @@ client_id = {}
 history = {}
 unique_code = {}
 email_of = {}
+user_of = {}
 file_cache = {}
 
 for i in registered_names:
@@ -106,8 +107,15 @@ def new_user_rituals(user):
     registered_names.append(user)
 
 
-def send_code(email):
-    email = email[1:]
+def send_code(email, client):
+    mode = int(email[1])
+    email = email[2:]
+    if (email in email_of.values()) ^ mode:
+        client.sendall('PASS'.encode())
+    else:
+        client.sendall('FAIL'.encode())
+        return
+
     global unique_code
     code = random.randint(0, 9999999999999999)
     unique_code[email] = str(code).zfill(16)
@@ -115,30 +123,32 @@ def send_code(email):
     emails.send_email(email, unique_code[email])
 
 
-def create_acct(message):
+def create_acct(message, client):
     email, user, passw, code = message[1:].split('~')
-    if email in email_of.values() and 0:
-        print("Email already used")
-    elif code != unique_code[email]:
-        print("Wrong code used")
+    if code != unique_code[email]:
+        client.sendall('FAIL'.encode())
+        return
     else:
+        client.sendall('PASS'.encode())
         email_of[user] = email
+        user_of[email] = user
         passwords[user] = passw
         new_user_rituals(user)
 
 
-def reset_password(message):
+def reset_password(message, client):
     email, user, passw, code = message[1:].split('~')
-    if user not in registered_names or email not in email_of.values():
-        print("Username or email is not registered")
-    elif code != unique_code[email]:
-        print("Wrong code used")
+    if code != unique_code[email]:
+        client.sendall('FAIL'.encode())
+        return
     else:
-        passwords[user] = passw
+        client.sendall('PASS'.encode())
+        passwords[user_of[email]] = passw
 
 
 # Function to listen for upcoming messages from a client
 def listen_for_messages(client):
+    username = ''
     while 1:
 
         message = client.recv(FILE_BUFFER_SIZE).decode('utf-8')  # normal message format: "receiver~message"
@@ -160,16 +170,16 @@ def listen_for_messages(client):
                 save_file_to_server(client, filepath, to_user)
                 send_file_to_user(filepath, filename, to_user, from_user)
             elif message[0] == '@':
-                send_code(message)
+                send_code(message, client)
             elif message[0] == '!':  # message format: "!email~username~password~code"
-                create_acct(message)
+                create_acct(message, client)
             elif message[0] == '*':  # message format: "*email~username~password~code"
-                reset_password(message)
+                reset_password(message, client)
             elif message[0] == '^':  # message format: "^username~password"
                 u, p = message[1:].split('~')
                 # print(message)
-                client_handler(client, u, p)
-                username = u
+                if client_handler(client, u, p):
+                    username = u
             elif message == '$$$':
                 still_conn[username] = 1
             else:
@@ -273,7 +283,8 @@ def send_message(sender, message):
 # Function to handle client
 def client_handler(client, username, password):
     if username not in registered_names or passwords[username] != password:
-        return
+        client.sendall('WRONG CREDENTIALS'.encode())
+        return False
 
     online.add(username)
     still_conn[username] = 1
@@ -296,6 +307,8 @@ def client_handler(client, username, password):
     for name in registered_names:
         if name != username and name in online:
             client_id[name].sendall(('&' + username).encode())
+
+    return True
 
 
 # Main function
