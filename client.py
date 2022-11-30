@@ -512,12 +512,14 @@ def new_user_rituals(user):
     name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
     name_frame.grid(row=num_users, column=0, sticky=tk.NSEW)
 
-    name_label = tk.Label(name_frame, text=user, font=FONT, bg=DARK_GREY, fg=WHITE)
+    name_label = tk.Label(name_frame, text=user, font=FONT, bg=DARK_GREY, fg=OFFLINE_BLUE)
     name_label.pack(side=tk.LEFT, padx=10)
 
     name_button = tk.Button(name_frame, text="Chat", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
                             command=lambda person=user: chat(user))
     name_button.pack(side=tk.LEFT, padx=15)
+
+    friendlist[user] = name_label
 
 
 def new_online_rituals(user):
