@@ -4,6 +4,7 @@ import threading
 import os
 import ntpath
 import time
+import random
 
 registered_names = ["JACK", "TOM", "PAUL"]
 passwords = {"JACK": "JACK1", "TOM": "TOM1", "PAUL": "PAUL1"}
@@ -140,6 +141,10 @@ def listen_for_messages(client):
         if message != '':
             if message[:2] == '\?':
                 send_history(client, username, message)
+            elif message[:2] == '\!':
+                _, from_user, to_user = message.split(SEPARATOR)
+                msg = '\!' + from_user
+                client_id[to_user].sendall(msg.encode('utf-8'))
             elif SEPARATOR in message:
                 print("Received a file")
                 # message contains filename and filesize separated by separator
