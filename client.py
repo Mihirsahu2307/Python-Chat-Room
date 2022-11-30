@@ -10,6 +10,7 @@ from tkinter import StringVar
 from tkinter.filedialog import askopenfilename
 import os
 import ntpath
+import time
 
 client_data = 'client_data'
 FILE_BUFFER_SIZE = 2048
@@ -391,30 +392,52 @@ windows = {}
 def chat(person):
     prev_typing_state = False
     current_typing_state = False
+    double_click_flag = False
     # Opens tkinter window to select file for uploading
-    def upload_file():
-        if not is_connected:
-            messagebox.showerror("Host Not Found", "Please connect to a server first")
-            return
+    
+    def mouse_click(event):
+        upload_button.after(300, mouse_action, event)
 
-        Tk().withdraw()  # we don't want a full GUI, so keep the root window from appearing
+    def double_click(event):
+        nonlocal double_click_flag
+        double_click_flag = True
 
-        filename = askopenfilename()  # show an "Open" dialog box and return the path to the selected file
-        if not filename:
-            return
+    def mouse_action(event):
+        nonlocal double_click_flag
+        if double_click_flag:
+            print('double mouse click event')
+            cancel_uploaded_file(0)
+            double_click_flag = False
+        else:
+            # Upload File
+            print('single mouse click event')
+            if not is_connected:
+                messagebox.showerror("Host Not Found", "Please connect to a server first")
+                return
 
-        # upload_button.config(state=tk.DISABLED)
-        button_text = ntpath.basename(filename)
+            Tk().withdraw()  # we don't want a full GUI, so keep the root window from appearing
 
-        global filepath
-        filepath = filename
-        print(filepath)
+            filename = askopenfilename()  # show an "Open" dialog box and return the path to the selected file
+            if not filename:
+                return
 
-        if len(button_text) > 6:
-            button_text = button_text[:4] + '...'
+            # upload_button.config(state=tk.DISABLED)
+            button_text = ntpath.basename(filename)
 
-        upload_button.config(text=button_text)
-        message_textbox.config(state=tk.DISABLED)
+            global filepath
+            filepath = filename
+            print(filepath)
+
+            if len(button_text) > 6:
+                button_text = button_text[:4] + '...'
+
+            upload_button.config(text=button_text)
+            message_textbox.config(state=tk.DISABLED)
+    
+    def cancel_uploaded_file(event):
+        upload_button.config(text='Upload')
+        message_textbox.config(state=tk.NORMAL)
+        
         
     # Callback to handle typing events
     def typing_indicator_callback(sv):
@@ -462,8 +485,9 @@ def chat(person):
     message_textbox.pack(side=tk.LEFT, padx=10)
     message_textbox.pack()
 
-    upload_button = tk.Button(bottom_frame, text="Upload", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
-                              command=upload_file)
+    upload_button = tk.Button(bottom_frame, text="Upload", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE)
+    upload_button.bind('<Button-1>', mouse_click)             # bind left mouse clicks
+    upload_button.bind('<Double-Button-1>', double_click)    # bind left double mouse click
     upload_button.pack(side=tk.LEFT, padx=10)
 
     message_button = tk.Button(bottom_frame, text="Send", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,

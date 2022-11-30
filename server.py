@@ -147,6 +147,8 @@ def listen_for_messages(client):
                 send_history(client, username, message)
             elif message[:2] == '\!':
                 _, from_user, to_user = message.split(SEPARATOR)
+                if not to_user in online:
+                    continue
                 msg = '\!' + from_user
                 client_id[to_user].sendall(msg.encode('utf-8'))
             elif SEPARATOR in message:
