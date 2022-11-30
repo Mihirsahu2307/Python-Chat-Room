@@ -1,6 +1,7 @@
 # import required modules
 import socket
 import threading
+import time
 import tkinter as tk
 from tkinter import scrolledtext
 from tkinter import Tk
@@ -43,6 +44,18 @@ friendlist = {}
 
 emb = unb = pwb = cdb = None
 emf = unf = pwf = cdf = None
+
+
+def send_signals():
+    while 1:
+        time.sleep(1)
+        client.sendall(('$$$').encode())
+
+        try:
+            if not tk.Tk.winfo_exists(root):
+                return
+        except:
+            return
 
 
 def send_email(mode):
@@ -260,6 +273,7 @@ def connect():
         num_users += 1
 
     threading.Thread(target=listen_for_messages_from_server, args=(client,)).start()
+    threading.Thread(target=send_signals).start()
 
 
 # configuring the temporary opening screen
@@ -469,6 +483,7 @@ def new_user_rituals(user):
 def new_online_rituals(user):
     friendlist[user].config(fg=GREEN)
 
+
 def new_offline_rituals(user):
     friendlist[user].config(fg=OFFLINE_BLUE)
 
@@ -499,9 +514,9 @@ def listen_for_messages_from_server(client):
                 new_user_rituals(message[1:])
             elif message[0] == '&':
                 new_online_rituals(message[1:])
-            elif message =='###':
-                pass
-            elif message[0]=='|':
+            # elif message =='###':
+            #     pass
+            elif message[0] == '|':
                 new_offline_rituals(message[1:])
             else:
                 try:

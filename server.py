@@ -8,6 +8,7 @@ import time
 registered_names = ["JACK", "TOM", "PAUL"]
 passwords = {"JACK": "JACK1", "TOM": "TOM1", "PAUL": "PAUL1"}
 online = set()
+still_conn = {}
 
 client_id = {}
 history = {}
@@ -18,6 +19,7 @@ file_cache = {}
 for i in registered_names:
     history[i] = {}
     file_cache[i] = {}
+    still_conn[i] = 0
     for j in registered_names:
         history[i][j] = ''
         file_cache[i][j] = []  # Files will be stored as dictionaries using keys: 'Name' and 'Path'
@@ -33,25 +35,31 @@ HOST = '127.0.0.1'
 LISTENER_LIMIT = 5
 PORT = 33
 
+
 def is_working():
     while 1:
         to_remove = []
         for user in online:
-            try:
-                client_id[user].sendall('###'.encode())
-            except:
+            if not still_conn[user]:
                 to_remove.append(user)
 
         print(online)
         print(to_remove)
+        print("conn", still_conn)
 
         for user in to_remove:
             online.remove(user)
 
         for user in online:
             for rem in to_remove:
-                client_id[user].sendall(('|'+rem).encode())
-        time.sleep(1)
+                client_id[user].sendall(('|' + rem).encode())
+
+        for user in registered_names:
+            still_conn[user] = 0
+
+        print("conn", still_conn)
+        time.sleep(5)
+
 
 threading.Thread(target=is_working).start()
 
@@ -151,6 +159,8 @@ def listen_for_messages(client):
                 # print(message)
                 client_handler(client, u, p)
                 username = u
+            elif message == '$$$':
+                still_conn[username] = 1
             else:
                 send_message(username, message)
         else:
@@ -255,6 +265,7 @@ def client_handler(client, username, password):
         return
 
     online.add(username)
+    still_conn[username] = 1
     client_id[username] = client
     names_list = ''
     online_list = ''
