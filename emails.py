@@ -4,8 +4,8 @@ from email.mime.text import MIMEText
 
 
 def send_email(email, code):
-    FROM_ADDR = "changeme"
-    FROM_PASSWD = "changeme"
+    FROM_ADDR = "ChangeMe"
+    FROM_PASSWD = "ChangeMe"
 
     Subject = "OTP for Chat App"
     Body = 'Here is the OTP for your login on Python chat app: ' + code

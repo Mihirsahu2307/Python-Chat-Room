@@ -17,6 +17,7 @@ filepath = 'send_file.txt'
 MSG_DELIMITER = '\!?^'
 SEPARATOR = '<SEPARATOR>'
 ENDTAG = '<ENDTAG>'
+ALL_USERS = '<%All%>'
 is_connected = False  # Set to true when connected to server
 
 HOST = '127.0.0.1'
@@ -90,6 +91,8 @@ def register_account():
 
         if msg == 'PASS':
             messagebox.showinfo('Account Registered!', 'Fill the credentials on the main window to log in')
+        elif msg=='USED USER':
+            messagebox.showerror('Registration Failed!', 'Username is already used up.')
         else:
             messagebox.showerror('Registration Failed!', 'OTP Entered is wrong.')
 
@@ -295,9 +298,20 @@ def connect():
     for i in range(6):
         root.grid_rowconfigure(i + 1, weight=1)
 
+
+    name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
+    name_frame.grid(row=1, column=0, sticky=tk.NSEW)
+
+    name_label = tk.Label(name_frame, text='GROUP CHAT', font=FONT, bg=DARK_GREY, fg = WHITE)
+    name_label.pack(side=tk.LEFT, padx=10)
+
+    name_button = tk.Button(name_frame, text="Chat", font=BUTTON_FONT, bg=OCEAN_BLUE, fg=WHITE,
+                            command=lambda person=ALL_USERS: chat(person))
+    name_button.pack(side=tk.LEFT, padx=15)
+
     for i in range(len(names_list)):
         name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
-        name_frame.grid(row=i + 1, column=0, sticky=tk.NSEW)
+        name_frame.grid(row=i + 2, column=0, sticky=tk.NSEW)
 
         name_label = tk.Label(name_frame, text=names_list[i], font=FONT, bg=DARK_GREY,
                               fg=GREEN if names_list[i] in online_set else OFFLINE_BLUE)
@@ -364,7 +378,6 @@ grid_rows_to_destroy = [password_frame, forgot_frame, create_frame]
 
 username = ""
 
-
 def add_message(message, name):
     if name in boxes.keys() and tk.Toplevel.winfo_exists(windows[name]):  # checking if the chat window is open
         boxes[name].config(state=tk.NORMAL)
@@ -373,15 +386,28 @@ def add_message(message, name):
 
 
 # typing indicator
-def toggle_typing_state(name):
+def toggle_typing_state(name, group_chat_window = False):
+    if group_chat_window:
+        # Will be implemented later
+        return
+    
+    username = name
+    if group_chat_window:
+        username = name.split(SEPARATOR)[0]
+        print("Group Chat window, typing: " + username)
+        name = ALL_USERS
+    
     if name in boxes.keys() and tk.Toplevel.winfo_exists(windows[name]):  # checking if the chat window is open
         to_user_textboxes[name].config(state=tk.NORMAL)
         prev_text = to_user_textboxes[name].cget('text')
         new_text = prev_text
-        if prev_text.endswith('(...is typing)'):
-            new_text = new_text[:-14]
+        if prev_text.endswith('(...is typing)') and prev_text.startswith(username):
+            if group_chat_window:
+                new_text = 'Group Chat'
+            else:
+                new_text = username
         else:
-            new_text += '(...is typing)'
+            new_text = username + '(...is typing)'
 
         to_user_textboxes[name].config(text=new_text, state=tk.DISABLED)
 
@@ -512,7 +538,10 @@ def chat(person):
     bottom_frame = tk.Frame(window, width=600, height=100, bg=DARK_GREY)
     bottom_frame.grid(row=2, column=0, sticky=tk.NSEW)
 
-    username_label = tk.Label(top_frame, text=person, font=FONT, bg=DARK_GREY, fg=WHITE, state=tk.DISABLED)
+    username_text = person
+    if person == ALL_USERS:
+        username_text = 'Group Chat'
+    username_label = tk.Label(top_frame, text=username_text, font=FONT, bg=DARK_GREY, fg=WHITE, state=tk.DISABLED)
     username_label.pack(side=tk.LEFT, padx=10)
 
     sv = StringVar()
@@ -570,7 +599,7 @@ def new_user_rituals(user):
     global num_users
     num_users += 1
     name_frame = tk.Frame(root, width=600, height=100, bg=DARK_GREY)
-    name_frame.grid(row=num_users, column=0, sticky=tk.NSEW)
+    name_frame.grid(row=num_users+1, column=0, sticky=tk.NSEW)
 
     name_label = tk.Label(name_frame, text=user, font=FONT, bg=DARK_GREY, fg=OFFLINE_BLUE)
     name_label.pack(side=tk.LEFT, padx=10)
@@ -605,7 +634,11 @@ def listen_for_messages_from_server(client):
             if message[:2] == '\!':
                 # This message will directly go to the to_user client, so no need to read the contents
                 _, from_user = message.split('\!')
-                toggle_typing_state(from_user)
+                
+                if SEPARATOR in from_user:
+                    toggle_typing_state(from_user, True)
+                
+                toggle_typing_state(from_user, False)
             elif SEPARATOR in message:
                 print("Received a file")
                 # message contains filename and filesize separated by separator
@@ -626,8 +659,9 @@ def listen_for_messages_from_server(client):
                 new_offline_rituals(message[1:])
             else:
                 try:
-                    username = message.split("~")[0]
-                    content = message.split('~')[1]
+                    # username = message.split("~")[0]
+                    # content = message.split('~')[1]
+                    username, content = message.split('~', 1)
                 except:
                     continue
 
